@@ -22,7 +22,8 @@
     "uuid": "^3.0.0"
   },
   "engines": {
-    "node": ">=4.0.0"
+   "node" : "~0.12.7",
+    "npm" : "~2.15.0"
   },
   "devDependencies": {
     "babel-cli": "^6.16.0",
