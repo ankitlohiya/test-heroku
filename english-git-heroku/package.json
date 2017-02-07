@@ -1,3 +1,5 @@
+var express = require ('express');
+var moment = require('moment');
 {
   "name": "node-wit",
   "version": "4.2.0",
