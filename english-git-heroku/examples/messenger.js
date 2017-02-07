@@ -18,7 +18,9 @@ const crypto = require('crypto');
 const express = require('express');
 const fetch = require('node-fetch');
 const request = require('request');
+const dateTime = require('date-and-time');
 
+const DEFAULT_MAX_STEPS = 50000;
 let Wit = null;
 let log = null;
 try {
@@ -34,12 +36,13 @@ try {
 const PORT = process.env.PORT || 8445;//ENGLISH
 
 // Wit.ai parameters
-const WIT_TOKEN = 'SLXYGGEZUJKFDVSEW7RUQ6BWR4MFHYVS';//process.env.WIT_TOKEN;
-
+//const WIT_TOKEN = 'AH7C7S5KBMI44L4KATB6LFSLEQ4XRUZF';//process.env.WIT_TOKEN;
+//const WIT_TOKEN = 'VLWELLT62YDURZO5B7EP3I6CCHQ67OXN';//process.env.WIT_TOKEN;
+const WIT_TOKEN ='X4EP7HE6O2LW4DQC6OCE72AUQMKHT3W7';
 // Messenger API parameters
-const FB_PAGE_TOKEN ='EAAZAuOLUbC1MBAOyDwImoYPcgGUnK3QqZCXXPHpq70RxUIVfivMvRxLrasdGRpL1hD3p4IZCGjo4BPnm1mdWqiIOqrkEGGs3yoYMyOtZCs0NBZC1gN6ZCRgZA8ZCZAQcimQfZCOzRFR0YX9UcwI8zwV4RDqVk5UtcrkDjyCXOridjSllXqCoEZBpKb3';//process.env.FB_PAGE_TOKEN;
+const FB_PAGE_TOKEN ='EAALQNbaHxvYBAGPPkKcjk3m9ITrfcEel1pS4IsaTSGPtH0PiwoeMhJxIfXG5q0be82EIXWxZAR5u3ecPWqo1ZCU2Wi1214OETPZBMLkCn7E6MC7JOhZBUYESDpqceXK3QQtT50mluA9z4O3amjiwu4WzIvGqVkEk8AWe0UHZBZBRiTLD33gZCPl';//process.env.FB_PAGE_TOKEN;
 if (!FB_PAGE_TOKEN) { throw new Error('missing FB_PAGE_TOKEN') }
-const FB_APP_SECRET = '516e2a55a5e8385728285466f649b2a2';//process.env.FB_APP_SECRET;
+const FB_APP_SECRET = 'dc04eae0be04355d6313d6fd68a1f1be';//process.env.FB_APP_SECRET;
 if (!FB_APP_SECRET) { throw new Error('missing FB_APP_SECRET') }
 
 let FB_VERIFY_TOKEN = null;
@@ -136,11 +139,137 @@ if (response.quickreplies) {  // Wit.ai wants us to include quickreplies, alrigh
       return Promise.resolve()
     }
   },
-  // You should implement your custom actions here
-  // See https://wit.ai/docs/quickstart
+ getname({context, entities}) {
+    var name = firstEntityValue(entities, 'intent');
+    if (name) {
+      context.name = name; // we should call a weather API here
+      delete context.missingintent;
+    } else {
+      context.missingintent = true;
+      delete context.name;
+    }
+    return context;
+  },
+
+  getdate({context, entities}) {
+ var date= firstEntityValue(entities, 'date'); 
+    global.date=date;
+    if (global.date) {
+      context.date = date; 
+      delete context.missingintent;    
+    } else {
+      context.missingintent = true;
+      delete context.date;
+    }
+   // console.log(global.date);
+    return context;
+  },
+
+  getstarttime({context, entities}) {
+
+  var starttime = firstEntityValue(entities, 'intent');
+  global.starttime=starttime;
+    if (global.starttime) {
+      context.starttime = starttime;
+      delete context.missingintent;
+    } else {
+      context.missingintent = true;
+      delete context.starttime;
+    }
+
+    return context;
+  },
+
+  getappointment({context, entities}) {
+    return new Promise(function(resolve, reject) {
+      var http = require('http'); 
+ var scheduleDateTime=formatDate(date,starttime);
+// var d = ('2017-'+global.month+'-'+ global.date +'T'+global.starttime+':00:00 ');
+    var url='http://192.168.0.10:8088/api/Appointment?doctorName=Alexander&sDate='+scheduleDateTime;
+http.get(url, (res) => {
+//console.log(d);
+res.setEncoding('utf8');
+  let rawData = '';
+  res.on('data', (chunk) => rawData += chunk);
+  res.on('end', () => {
+    try {
+    var parsedData = JSON.parse(rawData);
+      // p= (parsedData.list[0].weather[0].description);
+     //var datetime=null;
+           context.appointment =parsedData;
+     }    
+         //  console.log(p);
+         catch (e) {
+            console.log(e.message);
+            }   
+
+    return resolve(context);
+ });
+
+}).on('error', (e) => {
+  console.log(`Got error: ${e.message}`);
+});
+//var p = null;
+    });
+  },
+
+
+ 
+
+getappid({context, entities}) {
+ var id= firstEntityValue(entities, 'intent'); 
+    global.id=id;
+    if (global.id) {
+      context.id = id; 
+      delete context.missingintent;    
+    } else {
+      context.missingintent = true;
+      delete context.id;
+    }
+    console.log(global.id);
+    return context;
+  },
+
+
+  getcancelapp({context,entities}){
+return new Promise(function(resolve, reject) {
+var http=require('http');
+var url='http://192.168.0.10:8088/api/Appointment/CancelAppointment/'+global.id;
+http.get(url, (res) => {
+//console.log(d);
+res.setEncoding('utf8');
+  let rawData = '';
+  res.on('data', (chunk) => rawData += chunk);
+  res.on('end', () => {
+    try {
+    var parsedData = JSON.parse(rawData);
+      // p= (parsedData.list[0].weather[0].description);
+     //var datetime=null;
+           context.cancelapp=parsedData;
+     }    
+         //  console.log(p);
+         catch (e) {
+            console.log(e.message);
+            }   
+
+    return resolve(context);
+ });
+
+}).on('error', (e) => {
+  console.log(`Got error: ${e.message}`);
+});
+//var p = null;
+    });
+
+},
+
+
+
 };
 
 // Setting up our bot
+
+
 const wit = new Wit({
   accessToken: WIT_TOKEN,
   actions,
@@ -260,6 +389,64 @@ function verifyRequestSignature(req, res, buf) {
     }
   }
 }
+const firstEntityValue = (entities, entity) => {
+  const val = entities && entities[entity] &&
+    Array.isArray(entities[entity]) &&
+    entities[entity].length > 0 &&
+    entities[entity][0].value
+  ;
+  if (!val) {
+    return null;
+  }
+  return typeof val === 'object' ? val.value : val;
+};
+
+
 
 app.listen(PORT);
 console.log('Listening on :' + PORT + '...');
+//for getting response from dynamic table
+ /*getShedularSettings({context}){  
+   return new Promise(function(resolve, reject) {
+      });
+   // return new Promise(function(resolve, reject) {var soap = require('soap');
+var url = "http://192.168.0.10/DBConnect/WebService.asmx?wsdl";
+ 
+  var d = (global.date+' '+ global.starttime +':00 AM'); 
+var args={dname:'Alexander',stime:d};
+
+soap.createClient(url, function(err, client){
+  
+ client.WebService.WebServiceSoap.GetShedularSettings(args, function(err, result){
+  
+   if (err) throw err;
+//context.ShedularSettings=ShedularSettings;
+//global.result=result;
+        console.log(result);
+        
+        context.ShedularSettings=result;
+      global.result=result;
+return context;
+            }); 
+});
+//return resolve(global.ShedularSettings); 
+//});
+
+return resolve(result);
+ }
+  */
+
+  function formatDate(date,time) {
+var arryDate=date.split('/');
+var arryTime=time.split(':');
+if(arryTime.length!=3)
+{
+  arryTime[1]=0;
+  arryTime[2]=0;
+}
+    var scheduleDateTime = new Date(arryDate[0], arryDate[1]-1, arryDate[2], arryTime[0],arryTime[1],arryTime[2]);
+    return dateTime.format(scheduleDateTime,'YYYY-MM-DDTHH:mm:ss');
+     
+}
+
+  
