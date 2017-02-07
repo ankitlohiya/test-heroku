@@ -18,12 +18,12 @@
   "repository": "https://github.com/wit-ai/node-wit",
   "author": "The Wit Team <help@wit.ai>",
   "dependencies": {
+    "date-and-time": "^0.4.0",
     "isomorphic-fetch": "^2.2.1",
     "uuid": "^3.0.0"
   },
   "engines": {
-   "node" : "~0.12.7",
-    "npm" : "~2.15.0"
+    "node": ">=4.0.0"
   },
   "devDependencies": {
     "babel-cli": "^6.16.0",
